@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -30,18 +29,48 @@ Voltar
 
 <hr>
 
-<table class="table table-hover shadow">
+<table class="table table-hover shadow align-middle">
 
 <tr class="table-dark">
 <th>Nome</th>
 <th>Documento</th>
 <th>Telefone</th>
+<th>Ações</th>
 </tr>
 
 <tr th:each="p : ${pessoas}">
+
 <td th:text="${p.nome}"></td>
 <td th:text="${p.documento}"></td>
 <td th:text="${p.telefone}"></td>
+
+<td>
+
+<div class="d-flex gap-2">
+
+<a th:href="@{'/pessoas/editar/' + ${p.id}}"
+   class="btn btn-warning btn-sm">
+
+Editar
+
+</a>
+
+<form th:action="@{'/pessoas/excluir/' + ${p.id}}"
+      method="post">
+
+<button class="btn btn-danger btn-sm"
+        onclick="return confirm('Deseja excluir esta pessoa?')">
+
+Excluir
+
+</button>
+
+</form>
+
+</div>
+
+</td>
+
 </tr>
 
 </table>

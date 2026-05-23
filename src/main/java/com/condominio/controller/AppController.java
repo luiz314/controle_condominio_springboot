@@ -54,20 +54,36 @@ public class AppController {
     }
 
     @GetMapping("/usuarios/novo")
-    public String novoUsuario() {
+    public String novoUsuario(Model model) {
+        model.addAttribute("usuario", new Usuario());
         return "novo_usuario";
     }
 
     @PostMapping("/usuarios/salvar")
     public String salvarUsuario(
+            @RequestParam(required = false) Long id,
             @RequestParam String username,
-            @RequestParam String password
+            @RequestParam(required = false) String password
     ) {
-        Usuario usuario = new Usuario();
+
+        Usuario usuario;
+
+        if (id != null) {
+            usuario = usuarioRepository.findById(id)
+                    .orElse(new Usuario());
+        } else {
+            usuario = new Usuario();
+        }
+
         usuario.setUsername(username);
-        usuario.setPassword(encoder.encode(password));
+
+        if (password != null && !password.isBlank()) {
+            usuario.setPassword(encoder.encode(password));
+        }
+
         usuarioRepository.save(usuario);
-        return "redirect:/login";
+
+        return "redirect:/usuarios";
     }
 
     @GetMapping("/pessoas")
@@ -93,12 +109,14 @@ public class AppController {
 
         List<Pessoa> pessoas = pessoaRepository.findAll();
 
-        // Monta o mapa de status: DENTRO se há acesso aberto (sem saída), FORA caso contrário
         Map<Long, String> statusMap = new HashMap<>();
+
         for (Pessoa p : pessoas) {
+
             boolean dentro = acessoRepository
                     .findTopByPessoaIdAndSaidaIsNullOrderByEntradaDesc(p.getId())
                     .isPresent();
+
             statusMap.put(p.getId(), dentro ? "DENTRO" : "FORA");
         }
 
@@ -116,6 +134,7 @@ public class AppController {
                 .orElseThrow();
 
         Acesso acesso = new Acesso();
+
         acesso.setPessoa(pessoa);
         acesso.setEntrada(LocalDateTime.now());
 
@@ -146,9 +165,71 @@ public class AppController {
                 .orElseThrow();
 
         model.addAttribute("pessoa", pessoa);
-        model.addAttribute("logs", acessoRepository.findByPessoaIdOrderByEntradaDesc(id));
+
+        model.addAttribute(
+                "logs",
+                acessoRepository.findByPessoaIdOrderByEntradaDesc(id)
+        );
 
         return "controle_log";
+    }
+
+    // =========================
+    // EDITAR PESSOA
+    // =========================
+
+    @GetMapping("/pessoas/editar/{id}")
+    public String editarPessoa(@PathVariable Long id, Model model) {
+
+        Pessoa pessoa = pessoaRepository
+                .findById(id)
+                .orElseThrow();
+
+        model.addAttribute("pessoa", pessoa);
+
+        return "cadastrar";
+    }
+
+    // =========================
+    // EXCLUIR PESSOA
+    // =========================
+
+    @PostMapping("/pessoas/excluir/{id}")
+    public String excluirPessoa(@PathVariable Long id) {
+
+        acessoRepository.deleteByPessoaId(id);
+
+        pessoaRepository.deleteById(id);
+
+        return "redirect:/pessoas";
+    }
+
+    // =========================
+    // EDITAR USUÁRIO
+    // =========================
+
+    @GetMapping("/usuarios/editar/{id}")
+    public String editarUsuario(@PathVariable Long id, Model model) {
+
+        Usuario usuario = usuarioRepository
+                .findById(id)
+                .orElseThrow();
+
+        model.addAttribute("usuario", usuario);
+
+        return "novo_usuario";
+    }
+
+    // =========================
+    // EXCLUIR USUÁRIO
+    // =========================
+
+    @PostMapping("/usuarios/excluir/{id}")
+    public String excluirUsuario(@PathVariable Long id) {
+
+        usuarioRepository.deleteById(id);
+
+        return "redirect:/usuarios";
     }
 
     @GetMapping("/gerenciar")
